@@ -1,0 +1,3 @@
+# install torch matching YOUR CUDA from pytorch.org (cu128 for Blackwell/RTX 50xx)
+torch
+numpy

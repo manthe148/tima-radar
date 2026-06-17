@@ -1,0 +1,9 @@
+# install torch matching YOUR CUDA from pytorch.org first, e.g. Blackwell (sm_120):
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+torch
+numpy
+scipy
+boto3
+botocore
+pygrib          # needs system eccodes:  apt-get install libeccodes-dev
+matplotlib

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+numpy
+scipy
+boto3
+botocore
+pygrib          # needs system eccodes:  apt-get install libeccodes-dev
+matplotlib
+requests

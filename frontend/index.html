@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TIMA v8 // Atmospheric Analysis Workbench</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       TIMA v8 PRODUCTION METEOROLOGICAL WORKBENCH DESIGN SYSTEM
+       ========================================================================== */
+    :root {
+      --bg-chassis: #0b0f14;
+      --bg-panel: #11161d;
+      --bg-input: #070a0e;
+      --border-color: #222d3a;
+      --border-focus: #3b526d;
+      
+      --color-text: #cdd9e5;
+      --color-muted: #768390;
+      
+      --accent-cyan: #00f0ff;
+      --severity-crimson: #ff3366;
+      --severity-safe: #5cdb95;
+      --warning-amber: #ffaa00;
+      
+      --font-sans: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-chassis);
+      color: var(--color-text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Core Layout Layout Blueprint */
+    .app-header {
+      background-color: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      letter-spacing: 1px;
+      color: #fff;
+    }
+
+    .system-status {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--severity-safe);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--severity-safe);
+      border-radius: 50%;
+    }
+
+    /* Main Grid Frame Area */
+    .workbench-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: calc(100vh - 42px);
+    }
+
+    @media (max-width: 900px) {
+      .workbench-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 500px;
+        height: auto;
+      }
+    }
+
+    /* Control Sidebar Configuration Column */
+    .control-sidebar {
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .panel-section-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent-cyan);
+      margin-bottom: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: var(--color-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+
+    select, input {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: #fff;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      transition: border-color 0.15s ease;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .coordinate-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background-color: var(--bg-chassis);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Spatial Mapping Window Container */
+    .map-pane {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #map-viewport {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-chassis);
+    }
+
+    /* Output Readout Panel Framework */
+    .results-display {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .score-matrix {
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .score-readout {
+      font-family: var(--font-mono);
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--color-muted);
+      line-height: 1;
+    }
+
+    .score-readout.is-match { color: var(--severity-crimson); }
+    .score-readout.is-nominal { color: var(--accent-cyan); }
+
+    /* The Non-Negotiable Mandatory Guard Elements */
+    .guard-warning-banner {
+      background-color: rgba(255, 170, 0, 0.1);
+      border: 1px dashed var(--warning-amber);
+      color: var(--warning-amber);
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      margin-top: 12px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    /* Clear Air State Application Rules */
+    .results-display.is-clear-air .score-readout {
+      color: var(--color-muted) !important;
+      opacity: 0.35;
+    }
+    .results-display.is-clear-air .guard-warning-banner {
+      display: block;
+    }
+
+    /* Technical Parameters Metadata Matrix Table */
+    .metadata-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    .metadata-table tr {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .metadata-table tr:last-child { border: none; }
+
+    .metadata-table td {
+      padding: 6px 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .metadata-table td:last-child {
+      text-align: right;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* Radar Frame Block Output */
+    .radar-frame {
+      margin-top: 16px;
+      background-color: var(--bg-chassis);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      aspect-ratio: 3 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .radar-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .radar-placeholder {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-muted);
+    }
+
+    .disclaimer-panel {
+      font-size: 11px;
+      color: var(--color-muted);
+      line-height: 1.4;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: auto;
+    }
+
+    /* Hardware Processing Overlay Indicator */
+    .processing-shroud {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(11, 15, 20, 0.9);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    .progress-bar-indicator {
+      width: 140px;
+      height: 2px;
+      background-color: var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar-indicator::after {
+      content: ''; display: block; width: 40px; height: 2px; background-color: var(--accent-cyan);
+      position: absolute; left: -40px; animation: shift-loader 1s infinite linear;
+    }
+
+    @keyframes shift-loader {
+      0% { left: -40px; } 100% { left: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>TIMA v8 METEOROLOGICAL WORKBENCH</h1>
+    <div class="system-status"><span class="status-dot"></span>NEXRAD_MOSAIC: CONUS_ACTIVE</div>
+  </header>
+
+  <div class="workbench-container">
+    
+    <aside class="control-sidebar">
+      <div>
+        <div class="panel-section-title">Target Geometry Vector</div>
+        
+        <div class="form-group">
+          <label for="preset-select">Historical Target Buffer</label>
+          <select id="preset-select" onchange="applyPresetSelection()">
+            <option value="">-- SELECT RECORDED PRESET --</option>
+          </select>
+        </div>
+
+        <div class="coordinate-row">
+          <div class="form-group">
+            <label for="input-lat">Latitude N</label>
+            <input type="number" id="input-lat" step="0.0001" value="35.0000">
+          </div>
+          <div class="form-group">
+            <label for="input-lon">Longitude W</label>
+            <input type="number" id="input-lon" step="0.0001" value="-97.0000">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-time">Temporal Capture Layer (Local Window)</label>
+          <input type="datetime-local" id="input-time">
+        </div>
+
+        <button id="btn-submit" class="btn-primary" onclick="requestTelemetryScore()">Initiate Analysis Sweep</button>
+      </div>
+
+      <div class="results-display" id="results-block">
+        <div class="panel-section-title" style="margin-bottom: 4px;">CNN Signature Evaluation</div>
+        <div class="score-matrix">
+          <div class="score-readout" id="out-prob">00.0%</div>
+        </div>
+        
+        <div class="guard-warning-banner" id="out-warning"></div>
+
+        <table class="metadata-table">
+          <tr>
+            <td>Reflectivity Peak (ref_max)</td>
+            <td id="out-ref">-- dBZ</td>
+          </tr>
+          <tr>
+            <td>Low-Level Rotation (az02_max)</td>
+            <td id="out-az02">-- s⁻¹</td>
+          </tr>
+          <tr>
+            <td>Mid-Level Rotation (az36_max)</td>
+            <td id="out-az36">-- s⁻¹</td>
+          </tr>
+          <tr>
+            <td>Zone Resolution (tz)</td>
+            <td id="out-tz">--</td>
+          </tr>
+        </table>
+
+        <div class="radar-frame" id="radar-container">
+          <div class="radar-placeholder" id="radar-empty">[ DATA BUFFER COLD ]</div>
+          <img id="radar-stream" src="" alt="3-Panel Extraction Map" style="display: none;">
+        </div>
+      </div>
+
+      <footer class="disclaimer-panel">
+        The model measures how strongly the radar matches the rotational signature it was trained on. Most rotating storms do NOT produce tornadoes. This is a research prototype, not a tornado warning. Always follow official National Weather Service warnings.
+      </footer>
+    </aside>
+
+    <main class="map-pane">
+      <div id="processing-shroud" class="processing-shroud">
+        <div>PARSING VOLUMETRIC MRMS CUBES...</div>
+        <div class="progress-bar-indicator"></div>
+      </div>
+      <div id="map-viewport"></div>
+    </main>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    /**
+     * ==========================================================================
+     * TIMA v8 CORE RUNTIME STATE CONTROLLER
+     * ==========================================================================
+     */
+    const CONFIG = {
+      API_BASE: '' // Remapped local port execution environment
+    };
+
+    let map = null;
+    let marker = null;
+    let scanAreaCircle = null;
+    let presetsData = [];
+
+    // Initialize UI Layout Modules
+    document.addEventListener("DOMContentLoaded", () => {
+      initMapEngine();
+      fetchPresetsCatalog();
+      setDefaultTime();
+
+      // click the 3-panel to view it full-screen
+      const _rs = document.getElementById('radar-stream');
+      if (_rs) {
+        _rs.style.cursor = 'zoom-in';
+        _rs.addEventListener('click', () => {
+          if (!_rs.src) return;
+          const ov = document.createElement('div');
+          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px';
+          const big = document.createElement('img');
+          big.src = _rs.src;
+          big.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+          ov.appendChild(big);
+          ov.addEventListener('click', () => ov.remove());
+          document.body.appendChild(ov);
+        });
+      }
+    });
+
+    function setDefaultTime() {
+      // Instate clear fallback template string structure for local timestamp fields
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('input-time').value = now.toISOString().slice(0, 16);
+    }
+
+    function initMapEngine() {
+      map = L.map('map-viewport', { preferCanvas: true }).setView([38.5, -96.5], 5);
+      
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 12
+      }).addTo(map);
+
+      L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png', { opacity: 0.55, zIndex: 200, attribution: 'NEXRAD // Iowa Environmental Mesonet' }).addTo(map);
+      map.on('click', handleMapGeoCoordIntercept);
+    }
+
+    function handleMapGeoCoordIntercept(e) {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      
+      document.getElementById('input-lat').value = lat.toFixed(4);
+      document.getElementById('input-lon').value = lon.toFixed(4);
+      document.getElementById('preset-select').value = ""; // Break current binding configuration lock
+      const _now = new Date(); document.getElementById('input-time').value = new Date(_now.getTime() - _now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+
+      updateMapMarkers(lat, lon);
+    }
+
+    function updateMapMarkers(lat, lon) {
+      if (marker) map.removeLayer(marker);
+      if (scanAreaCircle) map.removeLayer(scanAreaCircle);
+
+      marker = L.marker([lat, lon]).addTo(map);
+      scanAreaCircle = L.circle([lat, lon], {
+        radius: 20000, // 20km evaluated coordinate matrix footprint bounding box
+        color: '#00f0ff',
+        weight: 1,
+        fillOpacity: 0.03,
+        dashArray: '3 3'
+      }).addTo(map);
+      
+      map.flyTo([lat, lon], Math.max(map.getZoom(), 8), { duration: 0.6 });
+    }
+
+    async function fetchPresetsCatalog() {
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/presets`);
+        const data = await response.json();
+        if (data.presets) {
+          presetsData = data.presets;
+          const selectElement = document.getElementById('preset-select');
+          data.presets.forEach((preset, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = preset.name;
+            selectElement.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        console.error("Critical Failure retrieving targets database payload vectors: ", err);
+      }
+    }
+
+    function applyPresetSelection() {
+      const idx = document.getElementById('preset-select').value;
+      if (idx === "") return;
+      
+      const target = presetsData[idx];
+      document.getElementById('input-lat').value = target.lat;
+      document.getElementById('input-lon').value = target.lon;
+      
+      // Presets store localized wall-clock data definitions directly mapping to layout fields
+      if (target.time) {
+        const normalizedTime = target.time.replace(' ', 'T').slice(0, 16);
+        document.getElementById('input-time').value = normalizedTime;
+      }
+
+      updateMapMarkers(target.lat, target.lon);
+    }
+
+    function toggleProcessingState(isProcessing) {
+      document.getElementById('processing-shroud').style.display = isProcessing ? 'flex' : 'none';
+      document.getElementById('btn-submit').disabled = isProcessing;
+    }
+
+    async function requestTelemetryScore() {
+      const lat = parseFloat(document.getElementById('input-lat').value);
+      const lon = parseFloat(document.getElementById('input-lon').value);
+      const localTimeStr = document.getElementById('input-time').value;
+      
+      if (isNaN(lat) || isNaN(lon) || !localTimeStr) {
+        alert("Execution halted: Structural inputs incomplete.");
+        return;
+      }
+
+      // Convert datetime-local formatting sequence into the expected JSON structure
+      const formattedTime = localTimeStr.replace('T', ' ');
+
+      toggleProcessingState(true);
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: lat,
+            lon: lon,
+            time: formattedTime,
+            tz: 'auto' // Leverage native backend local time mapping configuration layer
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || `HTTP System Code Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderEvaluatedTelemetry(data);
+        
+      } catch (err) {
+        alert(`Analysis Sweep Terminated Exception: ${err.message}`);
+      } finally {
+        toggleProcessingState(false);
+      }
+    }
+
+    function renderEvaluatedTelemetry(res) {
+      const blockElement = document.getElementById('results-block');
+      const scoreElement = document.getElementById('out-prob');
+      
+      // Map properties back to view structure nodes
+      scoreElement.textContent = `${res.prob_pct.toFixed(1)}%`;
+      document.getElementById('out-ref').textContent = `${res.ref_max.toFixed(1)} dBZ`;
+      document.getElementById('out-az02').textContent = `${res.az02_max.toFixed(1)} s⁻¹`;
+      document.getElementById('out-az36').textContent = `${res.az36_max.toFixed(1)} s⁻¹`;
+      document.getElementById('out-tz').textContent = `${res.tz || 'UTC'}`;
+
+      // Reset style tags prior to processing evaluation rules
+      scoreElement.className = "score-readout";
+      blockElement.classList.remove('is-clear-air');
+      
+      // Evaluate threshold coloring arrays
+      if (res.prob_pct >= 50.0) {
+        scoreElement.classList.add('is-match');
+      } else {
+        scoreElement.classList.add('is-nominal');
+      }
+
+      // Execute the mandatory Non-Negotiable Shield Guard Loop
+      if (res.storm_present === false || res.storm_present === "false") {
+        blockElement.classList.add('is-clear-air');
+        document.getElementById('out-warning').textContent = res.warning || "CLEAR AIR COGNIZANCE FLAG ACTIVE.";
+      }
+
+      // Swap image frames instantly
+      if (res.image) {
+        document.getElementById('radar-empty').style.display = 'none';
+        const streamImg = document.getElementById('radar-stream');
+        streamImg.src = `data:image/png;base64,${res.image}`;
+        streamImg.style.display = 'block';
+      } else {
+        document.getElementById('radar-empty').style.display = 'block';
+        document.getElementById('radar-stream').style.display = 'none';
+      }
+
+      // Re-center bounding context if execution sequence triggered externally via dropdown presets
+      updateMapMarkers(res.lat, res.lon);
+    }
+  </script>
+<script>
+(function(){
+  // click the 3-panel radar image to view it full-screen
+  document.addEventListener('click', function(e){
+    var rs = document.getElementById('radar-stream');
+    if (!rs || e.target !== rs || !rs.src) return;
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px';
+    var big = document.createElement('img');
+    big.src = rs.src;
+    big.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+    ov.appendChild(big);
+    ov.addEventListener('click', function(){ ov.remove(); });
+    document.body.appendChild(ov);
+  });
+  // show a zoom-in cursor on the image once it exists
+  function setCur(){ var rs=document.getElementById('radar-stream'); if(rs) rs.style.cursor='zoom-in'; }
+  if (document.readyState !== 'loading') setCur(); else document.addEventListener('DOMContentLoaded', setCur);
+})();
+</script>
+</body>
+</html>

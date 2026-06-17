@@ -1,0 +1,24 @@
+# regenerable MRMS data (rebuild via training/mrms_extract.py)
+data/mrms_samples/
+data/*.pkl
+*.npz
+# runtime caches / logs
+v8_cache/
+*.log
+# models: ship only the released checkpoint
+*.pt
+!models/mrms_v8_jitter_ca.pt
+# secrets / infra — never commit
+.env
+*.env
+.cloudflared/
+*credentials*.json
+*secret*
+# python / os
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.DS_Store
+.vscode/
+.idea/
