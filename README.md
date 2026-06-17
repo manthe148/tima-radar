@@ -35,28 +35,29 @@ training. Released weights: `models/mrms_v8_jitter_ca.pt`.
 
 ## Validation — the honest numbers
 
-Held-out validation uses a **leak-safe split**: samples are partitioned by
-*convective day* (and storms kept ≥150 km apart), so no storm appears in both
-train and val. Three deliberate disciplines shape the result:
+Held-out validation uses a **leak-safe split by convective day** (negatives mined
+≥50 km from tornado reports), so no storm-day appears in both train and val — 1031
+tornado events across 261 days, 4386 boxes. Full methodology and the four sample
+types are in [`docs/VALIDATION.md`](docs/VALIDATION.md).
 
-1. **Jitter augmentation** (±12 px random translation) breaks the box-center
-   shortcut — the model can't assume the couplet sits at the exact center, so it
-   has to learn structure instead of position. (This dropped the apparent ROC from
-   an inflated 0.985 to an honest 0.919 — the lower number is the real one.)
-2. **Clear-air negatives** teach the model that storm-free space is not tornadic,
-   killing a false alarm where empty boxes scored ~90%.
-3. **Non-rotating precip negatives** span the reflectivity range so the model
-   keys on *rotation*, not raw intensity.
+Per-subtype results on the held-out set (model `mrms_v8_jitter_ca`):
 
-On the held-out set (leak-safe conv_day split):
+| sample type | n | median P(tor) | rate @ 0.5 |
+|---|---|---|---|
+| tornadic (positive) | 151 | 0.906 | recall 0.901 |
+| strong non-tornadic storm | 302 | 0.157 | FAR 0.268 |
+| clear-air | 144 | 0.014 | FAR 0.000 |
+| non-rotating precip | 82 | 0.019 | FAR 0.000 |
 
-- ROC-AUC **0.944** (reference: az-shear scalar floor 0.881)
-- Tornadic recall ≈ **0.90**
-- Clear-air / non-rotating-precip boxes score ≈ **0.01–0.02** (the false-alarm fix)
-- An empty, storm-free box scores ≈ **0.09** (was ~0.90 before the clear-air work)
+An empty, storm-free box scores **0.093**; a strong centered couplet scores
+**0.948**. Aggregate ROC-AUC is 0.944 — but that number is flattered by the easy
+clear-air/precip negatives, so **read the per-type table, not the aggregate.**
 
-A backend guard additionally flags low-reflectivity boxes so the score is never
-shown as authoritative over storm-free areas.
+Two disciplines make these trustworthy: **jitter augmentation** removed a
+box-centering shortcut that had inflated an earlier model to a fake 0.985, and
+**clear-air + non-rotating-precip negatives** killed a false alarm where empty
+boxes scored ~0.90 (now 0.09). The accepted cost is slightly looser FAR on strong
+non-tornadic storms (~0.22 → 0.27).
 
 ## Architecture
 
