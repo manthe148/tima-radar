@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TIMA v8 // Atmospheric Analysis Workbench</title>
-  
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,15 +20,15 @@
       --bg-input: #070a0e;
       --border-color: #222d3a;
       --border-focus: #3b526d;
-      
+
       --color-text: #cdd9e5;
       --color-muted: #768390;
-      
+
       --accent-cyan: #00f0ff;
       --severity-crimson: #ff3366;
       --severity-safe: #5cdb95;
       --warning-amber: #ffaa00;
-      
+
       --font-sans: 'Inter', sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -343,11 +343,11 @@
   </header>
 
   <div class="workbench-container">
-    
+
     <aside class="control-sidebar">
       <div>
         <div class="panel-section-title">Target Geometry Vector</div>
-        
+
         <div class="form-group">
           <label for="preset-select">Historical Target Buffer</label>
           <select id="preset-select" onchange="applyPresetSelection()">
@@ -379,7 +379,7 @@
         <div class="score-matrix">
           <div class="score-readout" id="out-prob">00.0%</div>
         </div>
-        
+
         <div class="guard-warning-banner" id="out-warning"></div>
 
         <table class="metadata-table">
@@ -472,7 +472,7 @@
 
     function initMapEngine() {
       map = L.map('map-viewport', { preferCanvas: true }).setView([38.5, -96.5], 5);
-      
+
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         maxZoom: 12
@@ -485,7 +485,7 @@
     function handleMapGeoCoordIntercept(e) {
       const lat = e.latlng.lat;
       const lon = e.latlng.lng;
-      
+
       document.getElementById('input-lat').value = lat.toFixed(4);
       document.getElementById('input-lon').value = lon.toFixed(4);
       document.getElementById('preset-select').value = ""; // Break current binding configuration lock
@@ -506,7 +506,7 @@
         fillOpacity: 0.03,
         dashArray: '3 3'
       }).addTo(map);
-      
+
       map.flyTo([lat, lon], Math.max(map.getZoom(), 8), { duration: 0.6 });
     }
 
@@ -532,11 +532,11 @@
     function applyPresetSelection() {
       const idx = document.getElementById('preset-select').value;
       if (idx === "") return;
-      
+
       const target = presetsData[idx];
       document.getElementById('input-lat').value = target.lat;
       document.getElementById('input-lon').value = target.lon;
-      
+
       // Presets store localized wall-clock data definitions directly mapping to layout fields
       if (target.time) {
         const normalizedTime = target.time.replace(' ', 'T').slice(0, 16);
@@ -555,7 +555,7 @@
       const lat = parseFloat(document.getElementById('input-lat').value);
       const lon = parseFloat(document.getElementById('input-lon').value);
       const localTimeStr = document.getElementById('input-time').value;
-      
+
       if (isNaN(lat) || isNaN(lon) || !localTimeStr) {
         alert("Execution halted: Structural inputs incomplete.");
         return;
@@ -585,7 +585,7 @@
 
         const data = await response.json();
         renderEvaluatedTelemetry(data);
-        
+
       } catch (err) {
         alert(`Analysis Sweep Terminated Exception: ${err.message}`);
       } finally {
@@ -596,7 +596,7 @@
     function renderEvaluatedTelemetry(res) {
       const blockElement = document.getElementById('results-block');
       const scoreElement = document.getElementById('out-prob');
-      
+
       // Map properties back to view structure nodes
       scoreElement.textContent = `${res.prob_pct.toFixed(1)}%`;
       document.getElementById('out-ref').textContent = `${res.ref_max.toFixed(1)} dBZ`;
@@ -607,7 +607,7 @@
       // Reset style tags prior to processing evaluation rules
       scoreElement.className = "score-readout";
       blockElement.classList.remove('is-clear-air');
-      
+
       // Evaluate threshold coloring arrays
       if (res.prob_pct >= 50.0) {
         scoreElement.classList.add('is-match');
@@ -656,5 +656,149 @@
   if (document.readyState !== 'loading') setCur(); else document.addEventListener('DOMContentLoaded', setCur);
 })();
 </script>
+<style>
+#tima-hist{position:fixed;left:12px;bottom:12px;width:min(258px,72vw);max-height:46vh;background:rgba(6,10,16,.94);border:1px solid rgba(0,229,255,.25);border-radius:8px;font-family:'JetBrains Mono',ui-monospace,monospace;color:#cfe9f5;z-index:6000;display:flex;flex-direction:column;box-shadow:0 6px 24px rgba(0,0,0,.5);overflow:hidden}
+#tima-hist-head{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;font-size:11px;letter-spacing:1.5px;color:#00E5FF;cursor:pointer;border-bottom:1px solid rgba(0,229,255,.15);user-select:none}
+#tima-hist-list{overflow-y:auto;padding:4px}
+#tima-hist.collapsed #tima-hist-list{display:none}
+#tima-hist-empty{padding:10px;font-size:10px;color:#6f8b9b;line-height:1.4}
+.tima-hist-item{display:flex;align-items:center;gap:9px;padding:6px 8px;margin:2px 0;border-radius:6px;cursor:pointer;background:rgba(255,255,255,.02);border:1px solid transparent;transition:background .12s}
+.tima-hist-item:hover{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.3)}
+.tima-hist-prob{font-size:14px;font-weight:700;min-width:48px;text-align:right}
+.tima-hist-meta{font-size:10px;line-height:1.3;color:#8fb4c6}
+#tima-load{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(6,10,16,.96);border:1px solid rgba(0,229,255,.3);border-radius:10px;padding:13px 18px;width:min(460px,92vw);z-index:7000;display:none;font-family:'Inter',system-ui,sans-serif;color:#dceff7;box-shadow:0 6px 28px rgba(0,0,0,.6)}
+#tima-load.on{display:block}
+#tima-load-row{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.3px}
+.tima-spin{width:16px;height:16px;border:2px solid rgba(0,229,255,.25);border-top-color:#00E5FF;border-radius:50%;animation:timaspin .8s linear infinite;flex:0 0 auto}
+@keyframes timaspin{to{transform:rotate(360deg)}}
+#tima-load-label{margin-top:10px;font-size:9px;letter-spacing:2px;color:#00E5FF;font-family:'JetBrains Mono',monospace}
+#tima-load-fact{font-size:12px;color:#a6cddd;margin-top:3px;line-height:1.45}
+.tima-detail-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.tima-detail-card{max-width:980px;width:100%;cursor:default}
+.tima-detail-img{width:100%;object-fit:contain;border-radius:6px;display:block}
+.tima-detail-head{font-family:'JetBrains Mono',monospace;color:#cfe9f5;margin-bottom:10px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;font-size:12px}
+.tima-detail-prob{font-size:30px;font-weight:800}
+</style>
+<script>
+(function(){
+  var FACTS = [
+    "The highest wind ever recorded near Earth's surface, about 302 mph, was measured by mobile radar in the May 3, 1999 Bridge Creek\u2013Moore, OK tornado.",
+    "A hook echo on radar is the classic supercell signature: precipitation wrapping around the rotating updraft.",
+    "On dual-pol radar, a drop in correlation coefficient inside a storm core is a tornado debris signature \u2014 radar seeing lofted debris.",
+    "A velocity couplet \u2014 strong inbound winds right beside strong outbound winds \u2014 is how radar reveals rotation.",
+    "Most violent tornadoes come from supercells, but squall-line (QLCS) tornadoes spin up fast and give far less warning.",
+    "A tornado watch means conditions are favorable; a warning means one is happening or imminent. Act on warnings.",
+    "The rear-flank downdraft, wrapping around the mesocyclone, plays a key role in tornado formation.",
+    "Tornado activity has been shifting east into the Southeast 'Dixie Alley' in recent decades.",
+    "Most tornadoes last only a few minutes and travel a few miles \u2014 but the worst can track over 100 miles.",
+    "The Enhanced Fujita scale rates tornadoes EF0\u2013EF5 by the damage they cause, not by directly measured wind.",
+    "Softball-sized hail implies an updraft over 100 mph \u2014 strong enough to suspend the stones aloft.",
+    "MRMS, the data behind this tool, blends every U.S. radar into a national grid updated about every two minutes.",
+    "Azimuthal shear \u2014 the rotation channel here \u2014 is computed from Doppler velocity differences across neighboring beams.",
+    "Nighttime tornadoes are far deadlier: people are asleep and can't see them. Keep multiple ways to get warnings.",
+    "A wall cloud is a lowering at a storm's rain-free base, marking the mesocyclone \u2014 and sometimes preceding a tornado.",
+    "The April 2011 Super Outbreak produced roughly 360 tornadoes in three days \u2014 the largest outbreak on record.",
+    "Lightning can strike over 10 miles from a storm \u2014 a clear sky overhead isn't safe when storms are near."
+  ];
+  var LSKEY = 'tima_history_v1';
+  var history = [];
+  try { history = JSON.parse(localStorage.getItem(LSKEY) || '[]') || []; } catch(e){ history = []; }
+  var hist = document.createElement('div'); hist.id = 'tima-hist';
+  hist.innerHTML =
+    '<div id="tima-hist-head"><span>SCAN HISTORY</span><span id="tima-hist-tog">\u2013</span></div>' +
+    '<div id="tima-hist-list"></div>';
+  document.body.appendChild(hist);
+  var load = document.createElement('div'); load.id = 'tima-load';
+  load.innerHTML =
+    '<div id="tima-load-row"><div class="tima-spin"></div>' +
+    '<div id="tima-load-title">Pulling MRMS &amp; scoring\u2026</div></div>' +
+    '<div id="tima-load-label">DID YOU KNOW</div><div id="tima-load-fact"></div>';
+  document.body.appendChild(load);
+  var listEl = document.getElementById('tima-hist-list');
+  document.getElementById('tima-hist-head').addEventListener('click', function(){
+    hist.classList.toggle('collapsed');
+    document.getElementById('tima-hist-tog').textContent = hist.classList.contains('collapsed') ? '+' : '\u2013';
+  });
+  function relTime(ts){
+    var s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+  function probColor(p){ return p >= 50 ? '#ff4d6d' : (p >= 20 ? '#ffb454' : '#00E5FF'); }
+  function probTxt(p){ return (p == null || isNaN(p)) ? '\u2014' : (Number(p).toFixed(1) + '%'); }
+  function render(){
+    if (!history.length){
+      listEl.innerHTML = '<div id="tima-hist-empty">No scans yet. Run an analysis to log it here.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    history.forEach(function(h){
+      var it = document.createElement('div'); it.className = 'tima-hist-item';
+      it.innerHTML =
+        '<div class="tima-hist-prob" style="color:' + probColor(h.prob || 0) + '">' + probTxt(h.prob) + '</div>' +
+        '<div class="tima-hist-meta">' + (h.lat == null ? '?' : h.lat) + ', ' + (h.lon == null ? '?' : h.lon) +
+        '<br>' + String(h.time || '').replace('T', ' ') + ' \u00b7 ' + relTime(h.ts) + '</div>';
+      it.addEventListener('click', function(){ openDetail(h); });
+      listEl.appendChild(it);
+    });
+  }
+  function save(){ try { localStorage.setItem(LSKEY, JSON.stringify(history.slice(0,20))); } catch(e){} }
+  function val(id){ var el = document.getElementById(id); return el ? el.value : null; }
+  function addEntry(data){
+    var p = (typeof data.prob_pct === 'number') ? data.prob_pct
+          : (data.prob_pct != null ? parseFloat(data.prob_pct) : null);
+    history.unshift({
+      prob: p, lat: val('input-lat'), lon: val('input-lon'), time: val('input-time'),
+      ref: data.ref_max, az02: data.az02_max, az36: data.az36_max,
+      tz: data.tz, warning: data.warning || null, image: data.image || null, ts: Date.now()
+    });
+    history = history.slice(0, 20);
+    save(); render();
+  }
+  function openDetail(h){
+    var m = document.createElement('div'); m.className = 'tima-detail-modal';
+    var head = '<div class="tima-detail-head">' +
+      '<span class="tima-detail-prob" style="color:' + probColor(h.prob || 0) + '">' + probTxt(h.prob) + '</span>' +
+      '<span>' + (h.lat == null ? '?' : h.lat) + ', ' + (h.lon == null ? '?' : h.lon) + '</span>' +
+      '<span>' + String(h.time || '').replace('T', ' ') + '</span>';
+    if (h.ref != null) head += '<span>ref ' + h.ref + ' \u00b7 az02 ' + (h.az02 == null ? '?' : h.az02) +
+      ' \u00b7 az36 ' + (h.az36 == null ? '?' : h.az36) + '</span>';
+    head += '</div>';
+    var card = '<div class="tima-detail-card">' + head +
+      (h.image ? '<img class="tima-detail-img" src="data:image/png;base64,' + h.image + '">'
+               : '<div style="color:#9fc6d8;font-family:monospace">No image stored for this scan.</div>') + '</div>';
+    m.innerHTML = card;
+    m.addEventListener('click', function(e){ if (e.target === m) m.remove(); });
+    document.body.appendChild(m);
+  }
+  var factTimer = null, factEl = document.getElementById('tima-load-fact');
+  function startFacts(){
+    var i = Math.floor(Math.random() * FACTS.length);
+    factEl.textContent = FACTS[i];
+    load.classList.add('on');
+    factTimer = setInterval(function(){ i = (i + 1) % FACTS.length; factEl.textContent = FACTS[i]; }, 9000);
+  }
+  function stopFacts(){ load.classList.remove('on'); if (factTimer){ clearInterval(factTimer); factTimer = null; } }
+  var _fetch = window.fetch;
+  window.fetch = function(){
+    var args = arguments, url = '';
+    try { url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url) || ''; } catch(e){}
+    var isScore = url.indexOf('/score') !== -1;
+    if (isScore) startFacts();
+    var pr = _fetch.apply(this, args);
+    if (isScore){
+      pr.then(function(resp){
+        stopFacts();
+        try { resp.clone().json().then(function(d){ if (d && (d.prob_pct != null || d.image)) addEntry(d); }).catch(function(){}); } catch(e){}
+      }).catch(function(){ stopFacts(); });
+    }
+    return pr;
+  };
+  render();
+})();
+</script>
+
 </body>
 </html>
